@@ -1,0 +1,74 @@
+Bot: SampleTestCreateBot
+
+Slots:
+  
+  - Slot: RepoOwnerA
+    Version: $LATEST
+    EnumerationValues:
+      - smyleeface
+  
+  - Slot: RepoA
+    Version: $LATEST
+    EnumerationValues:
+      - JukeboxAlexa
+      - ChatBotEventHub
+
+  - Slot: BranchA
+    Version: $LATEST
+    EnumerationValues:
+      - master
+      - feature-dev-branch
+      - foo-bar
+
+  - Slot: EnvironmentA
+    Version: $LATEST
+    EnumerationValues:
+      - sandbox
+      - dev
+      - staging
+      - production
+
+
+Intents:
+  #(optional)
+  # - FulfillmentActivity: LambdaArn
+  # - all ContentType: PlainText, 
+
+  - Intent: DeployA
+    SampleUtterances:
+      - "deploy {Branch}"
+      - "deploy {Environment}"
+    ConclusionStatement:
+      - Message: "Bye"
+        ContentType: PlainText
+    FulfillmentActivity: "TODO - Lambda ARN"
+    Slots:
+      - Name: Branch
+        SlotType: BranchA
+        SlotConstraint: Required
+        SlotTypeVersion: $LATEST
+        Priority: 1
+        ValueElicitationPrompt:
+          MaxAttempts: 3
+          Messages:
+            - Message: "Which Branch?"
+              ContentType: PlainText
+      - Name: Environment
+        SlotType: EnvironmentA
+        SlotConstraint: Required
+        SlotTypeVersion: $LATEST
+        Priority: 2
+        ValueElicitationPrompt:
+          MaxAttempts: 3
+          Messages:
+          - Message: "Which Environment?"
+            ContentType: PlainText
+
+ErrorHandling:
+  MaxRetries: 3
+  ClarificationPrompts:
+    - Message: "I didn't understand, please try again"
+      ContentType: PlainText
+    - Message: ms
+  AbortStatements:
+    - Message: "Good Bye"
