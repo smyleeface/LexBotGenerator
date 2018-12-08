@@ -1,24 +1,14 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.IO;
-using System.Linq;
-using System.Reflection;
 using System.Threading.Tasks;
-using Amazon.LexModelBuildingService;
 using Amazon.LexModelBuildingService.Model;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using YamlDotNet.RepresentationModel;
 
-namespace LexBot.SlackBot {
+namespace LexBot.Generator {
     public class ManageIntents {
-        private IAmazonLexModelBuildingService _lexBuildingClient;
+        private ILexBotGeneratorDependencyProvider _provider;
         private BotYamlModel _lexYamlData;
 
-        public ManageIntents(BotYamlModel lexYamlData) {
-            _lexBuildingClient = new AmazonLexModelBuildingServiceClient();
+        public ManageIntents(ILexBotGeneratorDependencyProvider provider, BotYamlModel lexYamlData) {
+            _provider = provider;
             _lexYamlData = lexYamlData;
         }
 
@@ -36,7 +26,7 @@ namespace LexBot.SlackBot {
         }
         
         private async Task DeleteLexIntent(string intentName) {
-            await _lexBuildingClient.DeleteIntentAsync(new DeleteIntentRequest {
+            await _provider.DeleteIntentAsync(new DeleteIntentRequest {
                 Name = intentName
             });
         }
@@ -54,7 +44,7 @@ namespace LexBot.SlackBot {
         }
 
         private async Task PutLexIntent(PutIntentRequest intent) {
-            await _lexBuildingClient.PutIntentAsync(intent);
+            await _provider.PutIntentAsync(intent);
         }       
         
         private async Task UpdateLexIntent(PutIntentRequest intent, string checksum = null) {
@@ -66,13 +56,13 @@ namespace LexBot.SlackBot {
 
         private async Task<GetIntentResponse> DoesIntentExist(PutIntentRequest intent) {
             try {
-                var response = await _lexBuildingClient.GetIntentAsync(new GetIntentRequest {
+                var response = await _provider.GetIntentAsync(new GetIntentRequest {
                     Name = intent.Name,
                     Version = "$LATEST"
                 });
                 return response;
             }
-            catch (Exception e) {
+            catch {
                 return null;
             }
         }

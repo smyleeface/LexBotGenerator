@@ -1,20 +1,19 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using Amazon.LexModelBuildingService;
 using Amazon.LexModelBuildingService.Model;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using YamlDotNet.RepresentationModel;
 
-namespace LexBot.SlackBot {
+namespace LexBot.Generator {
     public class ParseLexYaml {
+        private TextReader _yamlData;
+
+        public ParseLexYaml(TextReader yamlData) {
+            _yamlData = yamlData;
+        }
        
         public BotYamlModel Run() {
             return ReadFromYamlToObject();            
@@ -23,16 +22,10 @@ namespace LexBot.SlackBot {
         private BotYamlModel ReadFromYamlToObject() {
             var lexYamlData = new BotYamlModel();
             
-            // open the file
-            //TODO: parameterize the filename
-            string filePath = "/Users/pattyr/Projects/SMYLEECOM/SmyleeGitHubEventHub/src/LexBots/LexBot.SlackBot/Lex.yml";
-            FileStream fileStream = new FileStream(filePath, FileMode.OpenOrCreate, FileAccess.Read, FileShare.None);
-            StreamReader streamReader = new StreamReader(fileStream);
-            StringReader yamlString = new StringReader(streamReader.ReadToEnd());
+            // convert stream to yaml mapping
             var yaml = new YamlStream();
-            yaml.Load(yamlString);
+            yaml.Load(_yamlData);
             var yamlMappingNode = (YamlMappingNode) yaml.Documents[0].RootNode;
-            fileStream.Close();
 
             // get the bot name
             lexYamlData.BotName = ParseBotName(yamlMappingNode);
@@ -59,7 +52,7 @@ namespace LexBot.SlackBot {
             lexYamlData.PutBotRequest = GeneratePutBotRequest(lexYamlData); 
             return lexYamlData;
         }
-
+        
         private PutBotRequest GeneratePutBotRequest(BotYamlModel lexYamlData) {
             return new PutBotRequest {
                 Name = lexYamlData.BotName,
@@ -72,7 +65,7 @@ namespace LexBot.SlackBot {
 
         }
 
-        private IEnumerable<Intent> ParseIntentsForBot(YamlMappingNode yamlMappingNode) {
+        private List<Intent> ParseIntentsForBot(YamlMappingNode yamlMappingNode) {
             var parsedIntentsForBot = new List<Intent>();
             var intents = (YamlSequenceNode) yamlMappingNode.Children[new YamlScalarNode("Intents")];
             foreach (var intent in intents.Children.ToList()) {
@@ -88,7 +81,7 @@ namespace LexBot.SlackBot {
             return parsedIntentsForBot;
         }
 
-        private IEnumerable<PutIntentRequest> ParseIntents(YamlMappingNode yamlMappingNode) {
+        private List<PutIntentRequest> ParseIntents(YamlMappingNode yamlMappingNode) {
             var intents = (YamlSequenceNode) yamlMappingNode.Children[new YamlScalarNode("Intents")];
             var listIntentRequests = new List<PutIntentRequest>();
             foreach (var intent in intents.Children.ToList()) {
@@ -127,7 +120,7 @@ namespace LexBot.SlackBot {
                     };
                 }
             }
-            catch (Exception e) {
+            catch {
                 // ignored
             }
             return new FulfillmentActivity {
@@ -174,7 +167,7 @@ namespace LexBot.SlackBot {
             try {
                 contentType = messageYaml.Children[new YamlScalarNode("ContentType")].ToString();
             }
-            catch (Exception e) {
+            catch {
                 contentType = "";
             }
             return GenerateMessage (message, contentType);
@@ -245,7 +238,7 @@ namespace LexBot.SlackBot {
                 try {
                     contentType = ((YamlMappingNode) abortStatementMessage).Children[new YamlScalarNode("ContentType")].ToString();
                 }
-                catch (Exception e) {
+                catch {
                     contentType = "";
                 }
                 var statementMessage = GenerateMessage (message, contentType);
@@ -266,7 +259,7 @@ namespace LexBot.SlackBot {
                 try {
                     contentType = ((YamlMappingNode) clarificationPromptMessage).Children[new YamlScalarNode("ContentType")].ToString();
                 }
-                catch (Exception e) {
+                catch {
                     continue;
                 }
                 var promptMessage = GenerateMessage (message, contentType);
@@ -278,7 +271,7 @@ namespace LexBot.SlackBot {
             };
         }
         
-        public IEnumerable<PutSlotTypeRequest> ParseSlots(YamlMappingNode yamlMappingNode) {
+        public List<PutSlotTypeRequest> ParseSlots(YamlMappingNode yamlMappingNode) {
             
             var putSlotTypeRequests = new List<PutSlotTypeRequest>();
             var yamlSlots = (YamlSequenceNode) yamlMappingNode.Children[new YamlScalarNode("Slots")];
@@ -297,8 +290,7 @@ namespace LexBot.SlackBot {
                 .ToList();
             return new PutSlotTypeRequest {
                 Name = yamlSlotMapping.Children[new YamlScalarNode("Slot")].ToString(),
-                EnumerationValues = listOfEnumerationValues,
-                Checksum = "$LATEST"
+                EnumerationValues = listOfEnumerationValues
             };
         }
     }

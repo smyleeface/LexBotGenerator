@@ -2,32 +2,16 @@ Bot: SampleTestCreateBot
 
 Slots:
   
-  - Slot: RepoOwnerA
+  - Slot: EnvironmentA
     Version: $LATEST
     EnumerationValues:
       - smyleeface
   
-  - Slot: RepoA
+  - Slot: BranchA
     Version: $LATEST
     EnumerationValues:
       - JukeboxAlexa
       - ChatBotEventHub
-
-  - Slot: BranchA
-    Version: $LATEST
-    EnumerationValues:
-      - master
-      - feature-dev-branch
-      - foo-bar
-
-  - Slot: EnvironmentA
-    Version: $LATEST
-    EnumerationValues:
-      - sandbox
-      - dev
-      - staging
-      - production
-
 
 Intents:
   #(optional)

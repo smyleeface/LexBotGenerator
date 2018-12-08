@@ -1,30 +1,22 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.IO;
-using System.Linq;
-using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
-using Amazon.LexModelBuildingService;
 using Amazon.LexModelBuildingService.Model;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using YamlDotNet.RepresentationModel;
 
-namespace LexBot.SlackBot {
+namespace LexBot.Generator {
     public class ManageSlots {
-        private IAmazonLexModelBuildingService _lexBuildingClient;
-        private BotYamlModel _lexYamlData;
+        private ILexBotGeneratorDependencyProvider _provider;
+        public BotYamlModel botYamlData;
 
-        public ManageSlots(BotYamlModel lexYamlData) {
-            _lexBuildingClient = new AmazonLexModelBuildingServiceClient();
-            _lexYamlData = lexYamlData;
+        public ManageSlots(ILexBotGeneratorDependencyProvider provider, BotYamlModel lexYamlData) {
+            _provider = provider;
+            botYamlData = lexYamlData;
         }
 
         public async Task DeleteAll() {
-            foreach (var slot in _lexYamlData.Slots) {
+            foreach (var slot in botYamlData.Slots) {
                 await DeleteSingle(slot);
+                Thread.Sleep(3000);
             }
         }
 
@@ -36,25 +28,26 @@ namespace LexBot.SlackBot {
         }
         
         private async Task DeleteLexSlot(string slotName) {
-            await _lexBuildingClient.DeleteSlotTypeAsync(new DeleteSlotTypeRequest {
+            await _provider.DeleteSlotTypeAsync(new DeleteSlotTypeRequest {
                 Name = slotName
             });
         }
 
         public async Task RunUpdate() {
-            foreach (var slot in _lexYamlData.Slots) {
+            foreach (var slot in botYamlData.Slots) {
                 var response = await DoesSlotExist(slot);
                 if (response != null) {
                     await UpdateLexSlot(slot, response.Checksum);
                 }
                 else {
+                    slot.Checksum = null;
                     await PutLexSlot(slot);
                 }
             }
         }
 
         private async Task PutLexSlot(PutSlotTypeRequest slot) {
-            await _lexBuildingClient.PutSlotTypeAsync(slot);
+            await _provider.PutSlotTypeAsync(slot);
         }
         
         private async Task UpdateLexSlot(PutSlotTypeRequest slot, string checksum = null) {
@@ -63,18 +56,19 @@ namespace LexBot.SlackBot {
             }
             await PutLexSlot(slot);
         }
-
-        private async Task<GetSlotTypeResponse> DoesSlotExist(PutSlotTypeRequest slot) {
+        
+        public async Task<GetSlotTypeResponse> DoesSlotExist(PutSlotTypeRequest slot) {
             try {
-                var response = await _lexBuildingClient.GetSlotTypeAsync(new GetSlotTypeRequest {
+                var response = await _provider.GetSlotTypeAsync(new GetSlotTypeRequest {
                     Name = slot.Name,
                     Version = "$LATEST"
                 });
                 return response;
             }
-            catch (Exception e) {
+            catch {
                 return null;
             }
         }
+        
     }
 }
