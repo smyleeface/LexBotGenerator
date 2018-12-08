@@ -1,24 +1,14 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.IO;
-using System.Linq;
-using System.Reflection;
 using System.Threading.Tasks;
-using Amazon.LexModelBuildingService;
 using Amazon.LexModelBuildingService.Model;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using YamlDotNet.RepresentationModel;
 
-namespace LexBot.SlackBot {
-    public class ManageBots {
-        private IAmazonLexModelBuildingService _lexBuildingClient;
+namespace LexBot.Generator {
+    public class ManageBots : BaseLexBotDependencyProvider {
+        private ILexBotGeneratorDependencyProvider _provider;
         private BotYamlModel _lexYamlData;
 
-        public ManageBots(BotYamlModel lexYamlData) {
-            _lexBuildingClient = new AmazonLexModelBuildingServiceClient();
+        public ManageBots(ILexBotGeneratorDependencyProvider provider, BotYamlModel lexYamlData) {
+            _provider = provider;
             _lexYamlData = lexYamlData;
         }
 
@@ -41,7 +31,7 @@ namespace LexBot.SlackBot {
         }
 
         private async Task DeleteLexBot(string botName) {
-            await _lexBuildingClient.DeleteBotAsync(new DeleteBotRequest {
+            await _provider.DeleteBotAsync(new DeleteBotRequest {
                 Name = botName
             });
         }
@@ -54,18 +44,18 @@ namespace LexBot.SlackBot {
         }
         
         private async Task PutLexBot(PutBotRequest putBotRequest) {
-            await _lexBuildingClient.PutBotAsync(putBotRequest);
+            await _provider.PutBotAsync(putBotRequest);
         }
 
         private async Task<GetBotResponse> DoesBotExist(string botName) {
             try {
-                var response = await _lexBuildingClient.GetBotAsync(new GetBotRequest {
+                var response = await _provider.GetBotAsync(new GetBotRequest {
                     Name = botName,
                     VersionOrAlias = "$LATEST"
                 });
                 return response;
             }
-            catch (Exception e) {
+            catch {
                 return null;
             }
         }
